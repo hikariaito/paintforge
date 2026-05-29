@@ -1699,6 +1699,14 @@ function BarcodeScanner({allPaints,onFound,onTeach,onClose,onAddNew,addNewMode="
     let active=true;
     async function start(){
       try{
+        // Explicitly request camera permission first so the browser shows the prompt
+        const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+        if(!active){stream.getTracks().forEach(t=>t.stop());return;}
+        // Attach stream directly to video element
+        if(videoRef.current){
+          videoRef.current.srcObject=stream;
+          videoRef.current.play().catch(()=>{});
+        }
         const Z=window.ZXing;
         const hints=new Map();
         hints.set(Z.DecodeHintType.POSSIBLE_FORMATS,[Z.BarcodeFormat.EAN_13,Z.BarcodeFormat.EAN_8,Z.BarcodeFormat.UPC_A]);
@@ -1849,9 +1857,17 @@ function BarcodeScanner({allPaints,onFound,onTeach,onClose,onAddNew,addNewMode="
           <Badge color={T.red}>BARCODE NOT FOUND</Badge>
           <div style={{color:T.dim,fontSize:12,margin:"8px 0"}}>Try typing the number manually above, or retake the photo closer and flatter.</div>
           <button onClick={()=>setStatus("idle")} style={{width:"100%",background:T.bg,border:`1px solid ${T.orange}`,
-            color:T.orange,fontWeight:900,fontSize:11,letterSpacing:1,textTransform:"uppercase",padding:"9px 0",cursor:"pointer"}}>
+            color:T.orange,fontWeight:900,fontSize:11,letterSpacing:1,textTransform:"uppercase",padding:"9px 0",cursor:"pointer",marginBottom:12}}>
             TRY AGAIN
           </button>
+          {/* Still let them link to an existing paint manually */}
+          {paints.length>0&&(
+            <>
+              <div style={{color:T.dim,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Or search and link to an existing paint:</div>
+              <PaintSearch allPaints={paints} onSelect={p=>{if(onTeach) onTeach(null); onFound(p); onClose();}} brandFilter="all"/>
+            </>
+          )}
+          {onAddNew&&<AddNewItemForm onAddNew={(item)=>{onAddNew(item);onClose();}} barcode="" mode={addNewMode}/>}
         </div>
       )}
 
